@@ -16,6 +16,7 @@
     var r=await fetch(C.authEndpoint||'/api/lineAuth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({idToken:idToken})});
     if(!r.ok)throw new Error('auth_failed');var j=await r.json();
     var cred=await auth.signInWithCustomToken(j.token);uid=cred.user.uid;myName=j.name||'';
+    try{await fs.doc('profiles/'+uid).set({name:myName.slice(0,40),updatedAt:Date.now()},{merge:true})}catch(e){}
     try{localStorage.removeItem(GUEST_KEY)}catch(e){}
     resolveAuth(true)}
 
