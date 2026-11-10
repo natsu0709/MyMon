@@ -108,8 +108,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--blue);outline-o
 .nc-bar{height:11px;width:150px;max-width:100%;border:2.5px solid var(--ink);border-radius:99px;background:#FFE3EF;overflow:hidden;margin:5px 0 3px}
 .nc-bar i{display:block;height:100%;width:0;background:var(--pink);transition:width .4s cubic-bezier(.2,.9,.3,1.3)}
 .nc-sub{font-size:11px;color:var(--ink-soft);font-weight:800}
-.bubble{position:absolute;z-index:2;transform:translate(-50%,-100%);background:#fff;border:3px solid var(--ink);border-radius:16px;padding:7px 13px;font:800 14px var(--body);white-space:nowrap;pointer-events:none;animation:popin .35s cubic-bezier(.2,1.6,.4,1)}
-.bubble::after{content:"";position:absolute;left:50%;bottom:-11px;width:14px;height:14px;background:#fff;border-right:3px solid var(--ink);border-bottom:3px solid var(--ink);transform:translateX(-50%) rotate(45deg)}
+.bubble{position:absolute;z-index:2;transform:translate(-50%,-100%);box-sizing:border-box;width:max-content;max-width:min(300px,calc(100% - 32px));background:#fff;border:3px solid var(--ink);border-radius:16px;padding:8px 14px;font:800 14px/1.5 var(--body);white-space:normal;word-break:keep-all;overflow-wrap:anywhere;text-align:center;pointer-events:none;animation:popin .35s cubic-bezier(.2,1.6,.4,1)}
+.bubble::after{content:"";position:absolute;left:var(--tail,50%);bottom:-11px;width:14px;height:14px;background:#fff;border-right:3px solid var(--ink);border-bottom:3px solid var(--ink);transform:translateX(-50%) rotate(45deg)}
 @keyframes popin{from{scale:.3;opacity:0}to{scale:1;opacity:1}}
 .fx{position:absolute;inset:0;pointer-events:none;z-index:2;overflow:hidden}
 .heart{position:absolute;font:400 28px var(--display);color:var(--pink);-webkit-text-stroke:2.5px var(--ink);animation:rise 1.1s ease-out forwards}
@@ -382,7 +382,7 @@ body{margin:0;font-size:14px}img{max-width:100%}[hidden]{display:none!important}
       <p class="sub dark">きみの らくがきが、いきものになる。</p>
       <button class="tap dark" id="tap-start">TAP TO START</button>
       <button class="btn sun first-btn" id="first-btn" hidden>最初のマイモンを作る</button>
-      <p class="copy dark">ver 0.8 試作版</p>
+      <p class="copy dark">ver 1.0</p>
     </div>
   </section>
 
@@ -599,7 +599,7 @@ body{margin:0;font-size:14px}img{max-width:100%}[hidden]{display:none!important}
         <button class="set-row" id="set-title"><span class="ic ic-white"><svg viewBox="0 0 24 24" fill="#FF86B9" stroke="#2A2340" stroke-width="2.2" stroke-linejoin="round"><path d="M4 11l8-7 8 7v9H4z"/><path d="M10 20v-5h4v5" fill="#fff"/></svg></span><span class="lbl">タイトルにもどる</span><span class="chev">›</span></button>
         <button class="set-row danger" id="set-reset"><span class="ic ic-white"><svg viewBox="0 0 24 24" fill="none" stroke="#C2264B" stroke-width="2.4" stroke-linecap="round"><path d="M5 7h14M10 7V4.5h4V7M7 7l1 13h8l1-13"/></svg></span><span class="lbl">データをリセット<small>すべてのマイモンとフレンドを消して最初から</small></span><span class="chev">›</span></button>
       </div>
-      <p class="ver-note">マイモン ver 0.8（試作版）<br>BGM：MusMus（musmus.main.jp）</p>
+      <p class="ver-note">マイモン ver 1.0<br>BGM：MusMus（musmus.main.jp）</p>
     </div>
   </section>
 
@@ -611,8 +611,8 @@ body{margin:0;font-size:14px}img{max-width:100%}[hidden]{display:none!important}
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-<script src="config.js?v=8"></script>
-<script src="site.js?v=8"></script>
+<script src="config.js?v=10"></script>
+<script src="site.js?v=10"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/canvas-confetti/1.9.3/confetti.browser.min.js"></script>
@@ -1207,7 +1207,10 @@ function hudUI(){const m=curMon();if(!m)return;const l=lvOf(m.aff),a=lvBase(l),b
 function showBubble(text){const b=$('#bubble');b.textContent=text;b.hidden=false;const mm=curMon();if(mm)voice(mm.pers,Math.min(5,1+Math.ceil(text.length/5)));if(GS)GS.fromTo(b,{scale:.3,autoAlpha:0},{scale:1,autoAlpha:1,duration:.45,ease:'back.out(2.5)'});bubbleOn=3}
 function homeTick(dt){if(cur!=='home'||!island||!island.mon)return;const b=$('#bubble');
   if(bubbleOn>0){bubbleOn-=dt;if(bubbleOn<=0)b.hidden=true}else{bubbleT-=dt;if(bubbleT<=0){bubbleT=7+Math.random()*7;{const P=persOf((curMon()||{}).pers),L=Math.random()<.75?P.talk:TALK;showBubble(L[Math.random()*L.length|0])}}}
-  if(!b.hidden){const m=island.mon;m.root.updateMatrixWorld();TMP.set(0,m.H*1.08+(m.tpl==='float'?.3*m.H:0),0);m.root.localToWorld(TMP);TMP.project(island.camera);const el=$('#vp-home');b.style.left=((TMP.x+1)/2*el.clientWidth)+'px';b.style.top=((1-TMP.y)/2*el.clientHeight-8)+'px'}}
+  if(!b.hidden){const m=island.mon;m.root.updateMatrixWorld();TMP.set(0,m.H*1.08+(m.tpl==='float'?.3*m.H:0),0);m.root.localToWorld(TMP);TMP.project(island.camera);const el=$('#vp-home'),W_=el.clientWidth,H_=el.clientHeight;
+    const bw=b.offsetWidth,bh=b.offsetHeight,ax=(TMP.x+1)/2*W_,ay=(1-TMP.y)/2*H_-8,pad=16;
+    const cx=Math.min(W_-pad-bw/2,Math.max(pad+bw/2,ax)),hud=$('#hud'),minTop=(hud?hud.offsetTop+hud.offsetHeight+12:90)+bh,cy=Math.max(minTop,ay);
+    b.style.left=cx+'px';b.style.top=cy+'px';b.style.setProperty('--tail',Math.min(bw-22,Math.max(22,bw/2+(ax-cx)))+'px')}}
 if(HAS3){const ray=new THREE.Raycaster(),v2=new THREE.Vector2();
   $('#vp-home').addEventListener('pointerdown',e=>{if(!island||!island.mon)return;ac();const el=$('#vp-home'),r=el.getBoundingClientRect();v2.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);ray.setFromCamera(v2,island.camera);
     const m=island.mon;if(ray.intersectObject(m.mesh).length)pet(e.clientX-r.left,e.clientY-r.top);else{m.yawOff=clamp(v2.x*.8,-.7,.7);setTimeout(()=>{if(island.mon===m)m.yawOff=0},2200)}})}
