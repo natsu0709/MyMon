@@ -13,7 +13,7 @@
   function $(s){return document.querySelector(s)}
   function layers(){return document.getElementById('layers')||document.body}
   function sheet(html){var v=document.createElement('div');v.className='veil bottom';v.innerHTML=html;layers().appendChild(v);return v}
-  function alertSheet(msg,extra){var v=sheet('<div class="bsheet" role="dialog" aria-modal="true"><p class="note" style="font-size:13px"></p>'+(extra||'')+'<button class="btn" data-close>とじる</button></div>');v.querySelector('.note').textContent=msg;v.addEventListener('click',function(e){if(e.target===v||e.target.closest('[data-close]'))v.remove()});return v}
+  function alertSheet(msg,extra){var v=sheet('<div class="bsheet" role="dialog" aria-modal="true"><p class="note" style="font-size:13px;white-space:pre-line;word-break:break-all"></p>'+(extra||'')+'<button class="btn" data-close>とじる</button></div>');v.querySelector('.note').textContent=msg;v.addEventListener('click',function(e){if(e.target===v||e.target.closest('[data-close]'))v.remove()});return v}
 
   async function afterSignIn(user,name){
     uid=user.uid;myName=(name||user.displayName||'').slice(0,40);
@@ -96,7 +96,7 @@
 
   /* 設定の「アカウント」と、フレンドの「友達を招待」 */
   function renderAccount(){var lb=$('#acct-label'),nt=$('#acct-note');if(!lb)return;
-    if(!fbOk){lb.textContent='ログイン（準備中）';nt.textContent='サイトの設定が終わると使えます';return}
+    if(!fbOk){lb.textContent='ログイン（準備中）';nt.textContent=!C.firebase?'config.js が読みこめていません':'config.js の firebase の値が「YOUR_」のままです';return}
     if(uid){lb.textContent=(provider==='line'?'LINE':'Google')+'でログイン中';nt.textContent=(myName?myName+' さん・':'')+'タップでログアウト'}
     else{lb.textContent='ログイン';nt.textContent='データをアカウントに保存して、交換もできるようにする'}}
   document.addEventListener('click',function(e){
@@ -106,9 +106,10 @@
     var base=location.href.split('#')[0].split('?')[0];
     var url=C.shareUrl||(lineOk?'https://liff.line.me/'+C.liffId:base+'?openExternalBrowser=1');
     var text='マイモンで一緒に遊ぼう！自分で描いたモンスターが動きだすよ\n'+url;
-    try{if(liffOk&&liff.isApiAvailable&&liff.isApiAvailable('shareTargetPicker')){await liff.shareTargetPicker([{type:'text',text:text}]);return}}catch(e){}
+    try{if(liffOk&&liff.isInClient()&&liff.isApiAvailable('shareTargetPicker')){await liff.shareTargetPicker([{type:'text',text:text}]);return}}catch(e){}
+    if(navigator.share){try{await navigator.share({title:'マイモン',text:'マイモンで一緒に遊ぼう！自分で描いたモンスターが動きだすよ',url:url});return}catch(e){if(e&&e.name==='AbortError')return}}
     var line='https://line.me/R/share?text='+encodeURIComponent(text);
-    var v=alertSheet('友達に送る方法をえらんでね','<a class="btn line-btn" href="'+line+'" target="_blank" rel="noopener" style="text-decoration:none">LINEで送る</a><button class="btn" data-copy>メッセージをコピー</button>');
+    var v=alertSheet('友達に送る方法をえらんでね\n'+url,'<a class="btn line-btn" href="'+line+'" target="_blank" rel="noopener" style="text-decoration:none">LINEで送る</a><button class="btn" data-copy>メッセージをコピー</button>');
     v.querySelector('[data-copy]').onclick=async function(){try{await navigator.clipboard.writeText(text);this.textContent='コピーしました'}catch(e){this.textContent='コピーできませんでした'}}}
   setInterval(renderAccount,1000);
 
