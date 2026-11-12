@@ -19,7 +19,6 @@
     uid=user.uid;myName=(name||user.displayName||'').slice(0,40);
     provider=String(uid).indexOf('line:')===0?'line':'google';
     try{localStorage.removeItem(GUEST_KEY)}catch(e){}
-    try{await fs.doc('profiles/'+uid).set({name:myName,updatedAt:Date.now()},{merge:true})}catch(e){}
     resolveAuth(true)}
 
   async function signInWithLine(){
@@ -32,7 +31,11 @@
     if(!fbOk){resolveAuth(false);return}
     try{
       firebase.initializeApp(C.firebase);auth=firebase.auth();fs=firebase.firestore();
-      try{await auth.getRedirectResult()}catch(e){console.warn('[maimon] redirect',e)}
+      try{await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)}catch(e){}
+      // 前回ログインしていれば、まずそれを使う（毎回ログインし直さなくてよい）
+      var u0=await new Promise(function(res){var un=auth.onAuthStateChanged(function(x){un();res(x)})});
+      if(u0){await afterSignIn(u0);return}
+      try{await Promise.race([auth.getRedirectResult(),new Promise(function(r){setTimeout(r,4000)})])}catch(e){console.warn('[maimon] redirect',e)}
       if(lineOk){try{await liff.init({liffId:C.liffId});liffOk=true;if(liff.isLoggedIn()){await signInWithLine();return}}catch(e){console.warn('[maimon] liff',e)}}
       var u=await new Promise(function(res){var un=auth.onAuthStateChanged(function(x){un();res(x)})});
       if(u){await afterSignIn(u);return}
@@ -68,8 +71,9 @@
 
   /* タイトルで呼ばれる：ログインするかゲストで遊ぶかを決める */
   window.MAIMON_SITE={
-    ensureAuth:function(){
-      if(decided||!fbOk)return Promise.resolve(true);
+    ensureAuth:async function(){
+      if(!decided&&fbOk)await Promise.race([initDone,new Promise(function(r){setTimeout(r,6000)})]);
+      if(decided||!fbOk)return true;
       return new Promise(function(res){
         var v=sheet('<div class="bsheet" role="dialog" aria-modal="true"><h3>はじめる前に</h3><p class="note">ログインすると、マイモンがアカウントに保存されます。機種変更しても続きから遊べて、フレンドとの交換もできます。</p>'
           +'<button class="btn" data-a="google" style="background:#fff">Googleでログイン</button>'
@@ -80,7 +84,8 @@
           else if(b.dataset.a==='line'){b.disabled=true;b.textContent='LINEにつないでいます…';loginLine()}
           else{try{localStorage.setItem(GUEST_KEY,'1')}catch(err){}resolveAuth(false);v.remove();res(true)}})})},
     isLoggedIn:function(){return !!uid},
-    name:function(){return myName}};
+    name:function(){return myName},
+    ready:function(){return initDone}};
 
   async function logout(){
     var v=sheet('<div class="bsheet" role="dialog" aria-modal="true"><h3>ログアウト</h3><p class="note">この端末からマイモンのデータを消してログアウトします。データはアカウントに保存されているので、もう一度ログインすれば戻ります。</p><div style="display:flex;gap:10px"><button class="btn" data-a="no" style="flex:1">やめる</button><button class="btn pink" data-a="yes" style="flex:1.4">ログアウト</button></div></div>');
@@ -111,7 +116,24 @@
     var line='https://line.me/R/share?text='+encodeURIComponent(text);
     var v=alertSheet('友達に送る方法をえらんでね\n'+url,'<a class="btn line-btn" href="'+line+'" target="_blank" rel="noopener" style="text-decoration:none">LINEで送る</a><button class="btn" data-copy>メッセージをコピー</button>');
     v.querySelector('[data-copy]').onclick=async function(){try{await navigator.clipboard.writeText(text);this.textContent='コピーしました'}catch(e){this.textContent='コピーできませんでした'}}}
-  setInterval(renderAccount,1000);
+  /* ホーム画面に追加（PWA） */
+  var installEvt=null;
+  var isStandalone=function(){return (window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true};
+  var isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();installEvt=e;renderInstall()});
+  window.addEventListener('appinstalled',function(){installEvt=null;renderInstall();alertSheet('ホーム画面にマイモンを追加しました！次からはアイコンから遊べます。')});
+  function renderInstall(){var lb=$('#inst-label'),nt=$('#inst-note');if(!lb)return;
+    if(isStandalone()){lb.textContent='アプリとして起動中';nt.textContent='ホーム画面のアイコンから開いています';return}
+    lb.textContent='ホーム画面に追加';nt.textContent=installEvt?'ボタン1つで追加できます':'アプリのように全画面で遊べます'}
+  async function install(){
+    if(isStandalone()){alertSheet('もうホーム画面のアイコンから開いています。');return}
+    if(installEvt){installEvt.prompt();try{await installEvt.userChoice}catch(e){}installEvt=null;renderInstall();return}
+    if(inLineApp){alertSheet('LINEの中では追加できません。下のボタンでいつものブラウザで開いてから、もう一度押してください。','<a class="btn sun" href="'+externalUrl()+'" style="text-decoration:none">ブラウザで開く</a>');return}
+    if(isIOS)alertSheet('iPhoneでの追加のしかた\n\n1. Safariでこのページを開く\n2. 画面下の「共有」ボタン（四角から矢印が出たマーク）を押す\n3.「ホーム画面に追加」を押す\n4. 右上の「追加」を押す');
+    else alertSheet('Androidでの追加のしかた\n\n1. Chromeでこのページを開く\n2. 右上の「⋮」を押す\n3.「ホーム画面に追加」または「アプリをインストール」を押す\n4.「インストール」を押す')}
+  document.addEventListener('click',function(e){if(e.target.closest('#set-install'))install()});
+  if('serviceWorker' in navigator&&location.protocol==='https:'){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(e){console.warn('[maimon] sw',e)})})}
+  setInterval(function(){renderAccount();renderInstall()},1000);
 
-  init().then(renderAccount);
+  var initDone=init().then(renderAccount);
 })();
