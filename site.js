@@ -63,7 +63,7 @@
     var url=URL.createObjectURL(o.data),a=document.createElement('a');a.href=url;a.download=o.filename;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url)},5000);return{status:'saved'}}};
   var user={
     id:async function(){return uid},
-    profiles:async function(ids){var out={};await Promise.all((ids||[]).map(async function(id){try{var d=await fs.doc('profiles/'+id).get();if(d.exists)out[id]={name:(d.data()||{}).name||''}}catch(e){}}));return out}};
+    profiles:async function(ids){var out={};await Promise.all((ids||[]).map(async function(id){try{var d=await fs.doc('profiles/'+id).get();if(d.exists)out[id]={name:String((d.data()||{}).pname||'')}}catch(e){}}));return out}};
   window.claude={use:async function(name){
     if(name==='downloads')return downloads;
     var ok=await authDecided;if(!ok||!uid)return null;
@@ -102,7 +102,7 @@
   /* 設定の「アカウント」と、フレンドの「友達を招待」 */
   function renderAccount(){var lb=$('#acct-label'),nt=$('#acct-note');if(!lb)return;
     if(!fbOk){lb.textContent='ログイン（準備中）';nt.textContent=!C.firebase?'config.js が読みこめていません':'config.js の firebase の値が「YOUR_」のままです';return}
-    if(uid){lb.textContent=(provider==='line'?'LINE':'Google')+'でログイン中';nt.textContent=(myName?myName+' さん・':'')+'タップでログアウト'}
+    if(uid){lb.textContent=(provider==='line'?'LINE':'Google')+'でログイン中';nt.textContent='タップでログアウト'}
     else{lb.textContent='ログイン';nt.textContent='データをアカウントに保存して、交換もできるようにする'}}
   document.addEventListener('click',function(e){
     if(e.target.closest('#set-account')){if(!fbOk)return;if(uid)logout();else loginFromSettings()}
